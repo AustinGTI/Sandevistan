@@ -1,5 +1,6 @@
 import React, {useCallback, useState} from "react";
 import {Button, StyleSheet, Text, TextInput, View} from "react-native";
+import Animated from "react-native-reanimated";
 
 // function that takes in time in seconds and returns an array with the time in hours, minutes, and seconds
 function secondsToTime(time) {

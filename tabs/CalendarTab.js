@@ -7,15 +7,21 @@ import Animated, {
     withSpring
 } from "react-native-reanimated";
 import {TapGestureHandler} from "react-native-gesture-handler";
-// import {Canvas} from "@shopify/react-native-skia";
-// import {Rect} from "@shopify/react-native-skia/src/renderer/components/shapes/Rect";
-// import {GestureDetector} from "react-native-gesture-handler/src/handlers/gestures/GestureDetector";
+import {useDispatch, useSelector} from "react-redux";
+import {addTodo} from "../redux/action";
+
 
 
 export default function CalendarTab() {
     // create a shared value to determine the height of the slider
     const height = useSharedValue(0);
     const pressed = useSharedValue(false);
+    const dispatch = useDispatch();
+    const todoList = useSelector(state => state.todos);
+    console.log(todoList);
+    const toggle = () => {
+    dispatch(addTodo('random word here'));
+    }
 
     const anim = useAnimatedStyle(() => {
         return {
@@ -34,12 +40,13 @@ export default function CalendarTab() {
     return (
         <View style={styles.container}>
             <Text>Calendar Tab</Text>
+            <Text>{todoList.toString()}</Text>
                 <TapGestureHandler onGestureEvent={eventHandler}>
                     <Animated.View style={[styles.slider, anim]}/>
                 </TapGestureHandler>
 
             <Button style={styles.button} title={"Toggle"}
-                    onPress={() => height.value = height.value === 0 ? 100 : 0}/>
+                    onPress={toggle}/>
         </View>
     );
 }

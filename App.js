@@ -4,17 +4,24 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createDrawerNavigator} from "@react-navigation/drawer";
 import SettingsSection from "./sections/SettingsSection";
 import HomeSection from "./sections/HomeSection";
+import {store, persistor} from "./redux/store";
+import {Provider} from "react-redux";
+import {PersistGate} from "redux-persist/integration/react";
 
 // Create tab navigator
 const Drawer = createDrawerNavigator();
 export default function App() {
     return (
+        <Provider store={store}>
+            <PersistGate loading={null} persistor={persistor}>
         <NavigationContainer>
             <Drawer.Navigator>
                 <Drawer.Screen name="Home" component={HomeSection}/>
                 <Drawer.Screen name= "Settings"  component={SettingsSection}/>
             </Drawer.Navigator>
-        </NavigationContainer>);
+        </NavigationContainer>
+            </PersistGate>
+            </Provider>);
 }
 
 const styles = StyleSheet.create({

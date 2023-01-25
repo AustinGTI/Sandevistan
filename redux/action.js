@@ -11,3 +11,17 @@ export const addTodo = (todo) => {
         }
     }
 }
+
+export const ADD_PERSON = "ADD_PERSON";
+
+let personId = 0;
+
+export const addPerson = (person) => {
+    return {
+        type: ADD_PERSON,
+        payload:{
+            id:++personId,
+            person
+        }
+    }
+}

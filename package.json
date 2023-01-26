@@ -24,7 +24,8 @@
     "react-native-tab-view": "^3.3.4",
     "react-redux": "^8.0.5",
     "redux": "^4.2.0",
-    "redux-persist": "^6.0.0"
+    "redux-persist": "^6.0.0",
+    "expo-sqlite": "~11.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9"

@@ -1,11 +1,12 @@
 import {Text, View, StyleSheet} from "react-native";
 
-// the tab that will be used to display and edit the projects being worked on
+// the tab that will be used to display the calendar/ days of the week and daily schedule
 
-export default function ProjectTab() {
+export default function CalendarBase() {
     return (
+
         <View style={styles.container}>
-            <Text>Project Tab</Text>
+            <Text>Calendar Base</Text>
         </View>
     )
 }
@@ -13,7 +14,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         height: 100,
-        backgroundColor: "red",
+        backgroundColor: "yellow",
     }
 });
 

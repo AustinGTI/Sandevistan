@@ -1,5 +1,5 @@
 import {createStackNavigator} from "@react-navigation/stack";
-import CalendarBase from "./layers/calendar_base";
+import CalendarBase from "./layers/CalendarBase";
 // holder for the calendar stack
 
 const Stack = createStackNavigator();

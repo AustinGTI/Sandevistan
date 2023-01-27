@@ -3,7 +3,7 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import TimingTab from "../tabs/TimingTab";
 import {createMaterialTopTabNavigator} from "@react-navigation/material-top-tabs";
 import CalendarTab from "../home-tabs/calendar/CalendarTab";
-import DomainTab from "../home-tabs/domain/DomainTab";
+import ProjectsTab from "../home-tabs/projects/ProjectsTab";
 import PomodoroTab from "../home-tabs/pomodoro/PomodoroTab";
 
 // Create tab navigator
@@ -17,7 +17,7 @@ export default function HomeSection() {
             }}>
                 <Tab.Screen name={"Calendar"} component={CalendarTab}/>
                 <Tab.Screen name="Pomodoro" component={PomodoroTab}/>
-                <Tab.Screen name={"Project"} component={DomainTab}/>
+                <Tab.Screen name={"Project"} component={ProjectsTab}/>
             </Tab.Navigator>
         );
 }

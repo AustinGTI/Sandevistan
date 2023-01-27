@@ -1,6 +1,6 @@
 import {Text, View, StyleSheet} from "react-native";
 import {createStackNavigator} from "@react-navigation/stack";
-import PomodoroBase from "./layers/pomodoro_base";
+import PomodoroBase from "./layers/PomodoroBase";
 
 // the holder for the pomodoro stack
 const Stack = createStackNavigator();

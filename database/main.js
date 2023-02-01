@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import {createProjectTables, printProjectTables, seedProjectTables} from "./tables/project_tables";
+import {createProjectTables, dropProjectTables, printProjectTables, seedProjectTables} from "./tables/project_tables";
 
 const SEED = true;
 
@@ -10,6 +10,8 @@ const db = SQLite.openDatabase('database.db');
 createProjectTables(db);
 seedProjectTables(db);
 
+
+console.log(db);
 export default db;
 
 

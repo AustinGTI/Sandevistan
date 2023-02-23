@@ -132,6 +132,55 @@ export function printProjectTables(db) {
     );
 }
 
+
+// ? DATA RETRIEVAL FUNCTIONS
+// ..........................
+
+// function to get domains and their projects
+export function getDomainsAndProjects(db, callback) {
+    const raw_domains = [];
+    db.transaction((tx) => {
+            tx.executeSql("SELECT id,name,priority,color FROM domains", [], (_, {rows}) => {
+                // create an object for each domain, fill it with the domain's attributes and push it into the raw_domains array
+                rows._array.forEach((domain) => {
+                        const domain_object = {
+                            id: domain.id,
+                            name: domain.name,
+                            priority: domain.priority,
+                            color: domain.color,
+                            projects: []
+                        };
+                        raw_domains.push(domain_object);
+                    }
+                );
+                // for all the domains, get the projects and push them into the domain
+                raw_domains.forEach((domain) => {
+                    tx.executeSql(`SELECT id,name,priority,color FROM projects WHERE domain_id=${domain.id}`, [], (_, {rows}) => {
+                        rows._array.forEach((project) => {
+                            const project_object = {
+                                id: project.id,
+                                name: project.name,
+                                priority: project.priority,
+                                color: project.color,
+                            };
+                            domain.projects.push(project_object);
+                        });
+                    }, (error) => {
+                        console.log(error, 'error retrieving projects for domain', domain.name);
+                        });
+                    }
+                );
+            });
+        }, (error) => {
+            console.log(error);
+        },
+        () => {
+            callback(raw_domains);
+        });
+}
+
+
+
 // ? HELPER FUNCTIONS
 // .................
 

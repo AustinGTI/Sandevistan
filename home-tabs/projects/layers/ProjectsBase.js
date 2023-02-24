@@ -1,8 +1,9 @@
 import {Text, View, StyleSheet, FlatList} from "react-native";
 import db from "../../../database/main";
 import {getDomainsAndProjects} from "../../../database/tables/project_tables";
-import {useEffect, useMemo, useReducer, useState} from "react";
+import {useCallback, useEffect, useMemo, useReducer, useState} from "react";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
+import Animated, {useAnimatedStyle, useSharedValue, withTiming} from "react-native-reanimated";
 
 
 // component to display a single project pane
@@ -16,8 +17,28 @@ function ProjectPane({project}) {
 
 // component to display the domain section
 function DomainPane({domain}) {
-    // console.log(domain);
-    const [isExpanded, toggleIsExpanded] = useReducer((state) => !state, false);
+    // const isExpanded  = useSharedValue(false)
+    const paneHeight = useSharedValue(0);
+
+
+    const setIsExpanded = useCallback((state) => {
+        paneHeight.value = withTiming(state ? 0 : 1, {duration: 500});
+        console.log(paneHeight.value);
+        return !state;
+    }, []);
+    const [isExpanded, toggleIsExpanded] = useReducer(setIsExpanded, false);
+
+    const animatedStyles = useAnimatedStyle(() => {
+        return {
+            height: 45 + paneHeight.value * 30 * domain.projects.length,
+            backgroundColor: paneHeight.value === 1 ? "red" : "blue",
+        }
+    });
+    const projectPaneBoxStyle = useAnimatedStyle(() => {
+        return {
+            opacity: (paneHeight.value - 0.5)*2,
+        }
+    });
 
     const gesture = useMemo(() => {
         return Gesture.Tap().maxDistance(10).maxDuration(1000)
@@ -26,13 +47,12 @@ function DomainPane({domain}) {
     // noinspection JSValidateTypes
     return (
         <GestureDetector gesture={gesture}>
-            <View style={styles.domainPane}>
+            <Animated.View style={[styles.domainPane, animatedStyles]}>
                 <View style={styles.domainText}><Text>{domain.name}</Text></View>
-                {isExpanded ? <View style={styles.projectPaneContainer}>
+                <Animated.View style={[styles.projectPaneContainer,projectPaneBoxStyle]}>
                     {domain.projects.map((project, id) => <ProjectPane project={project} key={id}/>)}
-                </View> : null}
-
-            </View>
+                </Animated.View>
+            </Animated.View>
         </GestureDetector>
 
     )

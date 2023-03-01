@@ -72,8 +72,7 @@ export function seedProjectTables(db, only_if_empty = true) {
                                 );
                             }
 
-                        }
-                        else{
+                        } else {
                             console.log(table_name + ' is not empty, so it was not seeded');
                         }
                     });
@@ -155,18 +154,18 @@ export function getDomainsAndProjects(db, callback) {
                 );
                 // for all the domains, get the projects and push them into the domain
                 raw_domains.forEach((domain) => {
-                    tx.executeSql(`SELECT id,name,priority,color FROM projects WHERE domain_id=${domain.id}`, [], (_, {rows}) => {
-                        rows._array.forEach((project) => {
-                            const project_object = {
-                                id: project.id,
-                                name: project.name,
-                                priority: project.priority,
-                                color: project.color,
-                            };
-                            domain.projects.push(project_object);
-                        });
-                    }, (error) => {
-                        console.log(error, 'error retrieving projects for domain', domain.name);
+                        tx.executeSql(`SELECT id,name,priority,color FROM projects WHERE domain_id=${domain.id}`, [], (_, {rows}) => {
+                            rows._array.forEach((project) => {
+                                const project_object = {
+                                    id: project.id,
+                                    name: project.name,
+                                    priority: project.priority,
+                                    color: project.color,
+                                };
+                                domain.projects.push(project_object);
+                            });
+                        }, (error) => {
+                            console.log(error, 'error retrieving projects for domain', domain.name);
                         });
                     }
                 );
@@ -179,6 +178,39 @@ export function getDomainsAndProjects(db, callback) {
         });
 }
 
+// function to get a project and its tasks given its id
+export function getProjectAndTasks(db, project_id, callback) {
+    const raw_project = {};
+    db.transaction((tx) => {
+            tx.executeSql(`SELECT id,name,description,priority FROM projects WHERE id=?`, [project_id], (_, {rows}) => {
+                // create an object for the project, fill it with the project's attributes
+                const project = rows._array[0];
+                raw_project.id = project.id;
+                raw_project.name = project.name;
+                raw_project.description = project.description;
+                raw_project.priority = project.priority;
+                raw_project.tasks = [];
+                // get the tasks and push them into the project
+                tx.executeSql(`SELECT id,name,description FROM tasks WHERE project_id=?`, [project_id], (_, {rows}) => {
+                    rows._array.forEach((task) => {
+                        const task_object = {
+                            id: task.id,
+                            name: task.name,
+                            description: task.description,
+                        };
+                        raw_project.tasks.push(task_object);
+                    });
+                }, (error) => {
+                    console.log(error, 'error retrieving tasks for project', project.name);
+                });
+            });
+        }, (error) => {
+            console.log(error);
+        },
+        () => {
+            callback(raw_project);
+        });
+}
 
 
 // ? HELPER FUNCTIONS

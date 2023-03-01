@@ -13,6 +13,7 @@
     "@react-navigation/bottom-tabs": "^6.5.2",
     "@react-navigation/drawer": "^6.5.6",
     "@react-navigation/material-top-tabs": "^6.5.2",
+    "@react-navigation/native": "^6.1.6",
     "@react-navigation/stack": "^6.3.11",
     "@shopify/react-native-skia": "^0.1.157",
     "expo": "~47.0.8",

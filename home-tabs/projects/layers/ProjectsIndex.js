@@ -9,6 +9,7 @@ import {Gesture, GestureDetector} from "react-native-gesture-handler";
 function ProjectPane({project, navigation}) {
     const goToProject = useCallback(() => {
         navigation.push("ProjectView", {project_id: project.id});
+        console.log("go to project: " + project.name);
     }, [project]);
 
     const onTap = useMemo(() => Gesture.Tap().onEnd(goToProject),[goToProject]);
@@ -58,7 +59,7 @@ function DomainPane({domain , navigation}) {
 
 
 // the tab that will be used to display and edit the projects being worked on
-export default function ProjectsBase({navigation}) {
+export default function ProjectsIndex({navigation}) {
     const [domains, setDomains] = useState([]);
     useEffect(() => {
         getDomainsAndProjects(db, setDomains);

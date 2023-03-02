@@ -1,36 +1,30 @@
-import React, {useEffect, useState} from "react";
-import {StyleSheet, Text, View} from "react-native";
-import {getProjectAndTasks} from "../../../database/tables/project_tables";
-import db from "../../../database/main";
+import ProjectDetailsView from "./ProjectDetailsView";
+import ProjectTreeView from "./ProjectTreeView";
+import ProjectTasksView from "./ProjectTasksView";
+import {createStackNavigator} from "@react-navigation/stack";
+import {ProjectViewButtons} from "../ProjectsComponents";
+import {ProjectContext} from "../contexts/project_contexts";
+import {HeaderBackButton} from "@react-navigation/elements";
 
+// the holder for the projects stack
+const Stack = createStackNavigator();
 
-export default function ProjectView({route, navigation}) {
-    const {project_id} = route.params;
-    const [project, setProject] = useState({});
-    useEffect(() => {
-        // get the project from the database
-        getProjectAndTasks(db, project_id, setProject);
-    }, []);
+// the 3 views of a single project
+export default function ProjectView({navigation,route}) {
+    const project_id = route.params.project_id;
     return (
-        <View style={project_styles.container}>
-            <Text style={project_styles.heading_text}>{project.name}</Text>
-            <Text style={project_styles.body_text}>{project.description}</Text>
-        </View>
-    )
-}
+        <ProjectContext.Provider value={project_id}>
+            <Stack.Navigator screenOptions={{
+                headerTitle: (props) => <ProjectViewButtons current_view={props.children}/>,
+                headerTransparent: true,
+                animationEnabled: false,
+                headerLeft: () => <HeaderBackButton onPress={() => navigation.goBack()}/>,
 
-const project_styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#000',
-    },
-    heading_text: {
-        color: "#fff",
-        fontSize: 20,
-        textTransform: "uppercase",
-    },
-    body_text: {
-        color: "#fff",
-        fontSize: 15,
-    }
-});
+            }}>
+                <Stack.Screen name="ProjectDetailsView" component={ProjectDetailsView}/>
+                <Stack.Screen name="ProjectTreeView" component={ProjectTreeView}/>
+                <Stack.Screen name="ProjectTasksView" component={ProjectTasksView}/>
+            </Stack.Navigator>
+        </ProjectContext.Provider>
+    );
+}

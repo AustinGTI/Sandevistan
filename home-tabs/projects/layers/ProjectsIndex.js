@@ -1,8 +1,8 @@
 import {Text, View, StyleSheet, FlatList} from "react-native";
-import db from "../../../database/main";
 import {getDomainsAndProjects} from "../../../database/tables/project_tables";
-import {useCallback, useEffect, useMemo, useReducer, useState} from "react";
+import {useCallback, useContext, useEffect, useMemo, useReducer, useState} from "react";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
+import {DatabaseContext} from "../../../contexts/global_contexts";
 
 
 // component to display a single project pane
@@ -61,6 +61,7 @@ function DomainPane({domain , navigation}) {
 // the tab that will be used to display and edit the projects being worked on
 export default function ProjectsIndex({navigation}) {
     const [domains, setDomains] = useState([]);
+    const db = useContext(DatabaseContext);
     useEffect(() => {
         getDomainsAndProjects(db, setDomains);
     }, []);

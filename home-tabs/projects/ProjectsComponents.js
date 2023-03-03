@@ -1,6 +1,6 @@
 import {Button, StyleSheet,Text, View} from "react-native";
 import {useNavigation} from "@react-navigation/native";
-import {useCallback} from "react";
+import React, {useCallback} from "react";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
 
 
@@ -12,23 +12,32 @@ export const HEADER_HEIGHT = 50;
 // a single button that links to a single project view
 const ProjectViewButton = ({view, is_active}) => {
     const navigation = useNavigation();
-    const button_styling = is_active ? button_styles.active : button_styles.inactive;
     const navigate = useCallback(() => navigation.navigate(view), [view]);
-    const tap = Gesture.Tap().onStart(navigate);
+    const tap = Gesture.Tap().onBegin(navigate);
+    // ? STYLING
+    const button_view_styling = {...core_styles.button,...(is_active ? core_styles.active_button : core_styles.inactive_button)};
+    const button_text_styling = {...core_styles.body_text,color:button_view_styling.color};
     return (
         <GestureDetector gesture={tap} key={view}>
-            <View>
-                <Text style={button_styling}>{view}</Text>
+            <View style={button_view_styling}>
+                <Text style={button_text_styling}>{view.slice(7,-4)}</Text>
             </View>
         </GestureDetector>
     );
 }
+
+
 // a component composed of 3 buttons that allow the user to navigate between the 3 project views
 export const ProjectViewButtons = ({current_view}) => {
-    const views = ["ProjectTreeView", "ProjectTasksView", "ProjectDetailsView"];
+    const views = ["ProjectDetailsView", "ProjectTasksView", "ProjectTreeView"];
+    // ? STYLING
+    const buttons_container_styling = {...core_styles.container,flex:0,flexDirection:'row'};
     return (
-        <View style={button_styles.container}>
-            {views.map((view, vi) => <ProjectViewButton view={view} is_active={view === current_view} key={vi}/>)}
+        <View style={buttons_container_styling}>
+            {views.map(
+                (view, vi) =>
+                <ProjectViewButton view={view} is_active={view === current_view} key={vi}/>
+            )}
         </View>
     );
 }
@@ -38,31 +47,61 @@ export const ProjectViewButtons = ({current_view}) => {
 // .............
 
 // styles to be applied in general to components of the projects tab
-export const general_styles = StyleSheet.create({
+export const core_styles = StyleSheet.create({
+    // CONTAINERS
     container: {
         flex: 1,
         padding: 5,
         backgroundColor: '#000',
+        color: '#fff',
     },
-    text: {
-        color: "#fff",
-    }
-});
+    pane: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#fff',
+        borderRadius: 5,
+        paddingVertical: 10,
+        paddingHorizontal: 5,
+        margin: 5,
+    },
 
-// styles to be applied to buttons of the projects tab
-const button_styles = StyleSheet.create({
-    container: {
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
+    // TEXT
+    header_text: {
+        color: "#fff",
+        fontSize: 20,
+        textTransform: "uppercase",
+        paddingHorizontal: 10,
     },
-    active: {
+    body_text: {
+        color: "#fff",
+        fontSize: 16,
+        paddingHorizontal: 5,
+    },
+
+    // BUTTONS
+    button: {
+        paddingHorizontal: 5,
+        paddingVertical: 2,
+        margin: 2,
+        borderRadius: 3,
+    },
+    active_button: {
         backgroundColor: "#fff",
         color: "#000",
     },
-    inactive: {
+    inactive_button: {
         backgroundColor: "#000",
         color: "#fff",
     }
 });
+
+// styles to be applied specifically to the pages of a single project
+export const project_styles = StyleSheet.create({
+    container: {
+        paddingTop: HEADER_HEIGHT,
+    }
+});
+
 //endregion

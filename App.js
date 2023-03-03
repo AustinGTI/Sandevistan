@@ -4,19 +4,22 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createDrawerNavigator} from "@react-navigation/drawer";
 import SettingsSection from "./sections/SettingsSection";
 import HomeSection from "./sections/HomeSection";
-import * as SQLite from 'expo-sqlite';
+import {DatabaseContext} from "./contexts/global_contexts";
+import db from "./database/main";
 
 
 // Create tab navigator
 const Drawer = createDrawerNavigator();
 export default function App() {
     return (
-        <NavigationContainer>
-            <Drawer.Navigator>
-                <Drawer.Screen name="Home" component={HomeSection}/>
-                <Drawer.Screen name="Settings" component={SettingsSection}/>
-            </Drawer.Navigator>
-        </NavigationContainer>
+        <DatabaseContext.Provider value={db}>
+            <NavigationContainer>
+                <Drawer.Navigator>
+                    <Drawer.Screen name="Home" component={HomeSection}/>
+                    <Drawer.Screen name="Settings" component={SettingsSection}/>
+                </Drawer.Navigator>
+            </NavigationContainer>
+        </DatabaseContext.Provider>
     );
 }
 

@@ -11,7 +11,6 @@ createProjectTables(db);
 seedProjectTables(db);
 
 
-console.log(db);
 export default db;
 
 

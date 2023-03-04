@@ -1,4 +1,3 @@
-// function to create the project tables
 import {faker} from "@faker-js/faker";
 
 // function to create the project tables

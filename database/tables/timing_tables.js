@@ -29,8 +29,7 @@ export function printTimingTables(db, num_time_blocks) {
         tx.executeSql(
             'SELECT * FROM time_block LIMIT ?;',
             [num_time_blocks],
-            (_, {rows: {_array}}) =>
-            {
+            (_, {rows: {_array}}) => {
                 console.log(_array);
             },
             (error) => console.log(error)
@@ -170,7 +169,8 @@ export function seedTimingTables(db, only_if_empty = true) {
 // function to get the time blocks for a given task id with optional start and end dates and run a callback function on the result
 // end date is by default the current date
 // start date is by default 7 days before the end date
-function getTaskTimeBlocks(db,task_id, callback, start_date = null, end_date = null) {
+export function getTaskAndTimeBlocks(db, task_id, callback, start_date = null, end_date = null) {
+    const task = {}
     // if the end date is not given, set it to the current date
     if (!end_date) {
         end_date = new Date();
@@ -180,18 +180,42 @@ function getTaskTimeBlocks(db,task_id, callback, start_date = null, end_date = n
         start_date = new Date(end_date);
         start_date.setDate(start_date.getDate() - 7);
     }
-
-    // get the time blocks for the task id between the start and end dates
+    // get the data for the task first from the tasks table
     db.transaction((tx) => {
         tx.executeSql(
-            'SELECT * FROM time_block WHERE task_id = ? AND planned_start_time BETWEEN ? AND ?;',
-            [task_id, start_date.toISOString(), end_date.toISOString()],
+            'SELECT * FROM task WHERE id = ?;',
+            [task_id],
             (tx, result) => {
-                // run the callback function on the result
-                callback(result);
+                // if the task exists, add the data to the task data object
+                if (result.rows.length > 0) {
+                    for (let key in result.rows.item(0)) {
+                        task[key] = result.rows.item(0)[key];
+                    }
+                }
+                // if the task does not exist, run the callback function on the empty task data object
+                else {
+                    callback(task);
+                }
             }
         );
-    });
+
+        // get the time blocks for the task id between the start and end dates if the task exists
+        if (Object.keys(task).length > 0) {
+            tx.executeSql(
+                'SELECT * FROM time_block WHERE task_id = ? AND planned_start_time >= ? AND planned_end_time <= ?;',
+                [task_id, start_date.toISOString(), end_date.toISOString()],
+                (tx, result) => {
+                    // add the time blocks to the task data object
+                    task.time_blocks = [];
+                    for (let i = 0; i < result.rows.length; i++) {
+                        task.time_blocks.push(result.rows.item(i));
+                    }
+                    // run the callback function on the task data object
+                    callback(task);
+                });
+        }
+    }, (error) => console.log(error), () => console.log("Task and time blocks retrieved successfully"));
+
 }
 
 // ? HELPER FUNCTIONS

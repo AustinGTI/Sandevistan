@@ -8,7 +8,7 @@ import {DatabaseContext} from "../../../contexts/global_contexts";
 // component to display a single project pane
 function ProjectPane({project, navigation}) {
     const goToProject = useCallback(() => {
-        navigation.push("ProjectView", {project_id: project.id});
+        navigation.push("ProjectView", {project: project});
         console.log("go to project: " + project.name);
     }, [project]);
 

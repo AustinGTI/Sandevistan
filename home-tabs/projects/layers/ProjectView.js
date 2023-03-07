@@ -5,21 +5,29 @@ import {createStackNavigator} from "@react-navigation/stack";
 import {ProjectViewButtons} from "../ProjectsComponents";
 import {ProjectContext} from "../../../contexts/project_contexts";
 import {HeaderBackButton} from "@react-navigation/elements";
-import {useContext, useEffect, useState} from "react";
-import {getProjectAndTasks} from "../../../database/tables/project_tables";
+import {useContext, useEffect, useReducer, useState} from "react";
+import {getProjectTasks} from "../../../database/tables/project_tables";
 import {DatabaseContext} from "../../../contexts/global_contexts";
 
 // the holder for the projects stack
 const Stack = createStackNavigator();
 
+const projectUpdateHandler = (project, action) => {
+    switch (action.type) {
+        case "add_tasks":
+            return {...project, tasks: action.tasks};
+        default:
+            return {...project}
+    }
+}
+
 // the 3 views of a single project
-export default function ProjectView({navigation,route}) {
-    const [project, setProject] = useState({});
-    const project_id = route.params.project_id;
+export default function ProjectView({navigation, route}) {
+    const [project, updateProject] = useReducer(projectUpdateHandler, route.params.project);
     const db = useContext(DatabaseContext);
     useEffect(() => {
         // get the project from the database
-        getProjectAndTasks(db, project_id, setProject);
+        getProjectTasks(db, project.id, updateProject);
     }, []);
 
     // the 3 views of a single project

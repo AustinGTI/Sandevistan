@@ -5,7 +5,7 @@ export function createTimingTables(db) {
     // create timing tables
     db.transaction(tx => {
         tx.executeSql(
-            'CREATE TABLE IF NOT EXISTS time_block (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,' +
+            'CREATE TABLE IF NOT EXISTS time_blocks (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,' +
             ' planned_start_time TEXT NOT NULL,' +
             ' planned_end_time TEXT NOT NULL,' +
             ' actual_start_time TEXT,' +
@@ -27,7 +27,7 @@ export function createTimingTables(db) {
 export function printTimingTables(db, num_time_blocks) {
     db.transaction(tx => {
         tx.executeSql(
-            'SELECT * FROM time_block LIMIT ?;',
+            'SELECT * FROM time_blocks LIMIT ?;',
             [num_time_blocks],
             (_, {rows: {_array}}) => {
                 console.log(_array);
@@ -43,14 +43,14 @@ export function dropTimingTables(db, time_block_id = null) {
     db.transaction(tx => {
         if (time_block_id) {
             tx.executeSql(
-                'DELETE FROM time_block WHERE id = ?;',
+                'DELETE FROM time_blocks WHERE id = ?;',
                 [time_block_id],
                 (_, {rows: {_array}}) => console.log(_array),
                 (error) => console.log(error)
             );
         } else {
             tx.executeSql(
-                'DELETE FROM time_block;',
+                'DELETE FROM time_blocks;',
                 [],
                 (_, {rows: {_array}}) => console.log(_array),
                 (error) => console.log(error)
@@ -64,12 +64,13 @@ export function dropTimingTables(db, time_block_id = null) {
 export function seedTimingTables(db, only_if_empty = true) {
     // TODO: fix the standard deviations used, as of now they are not normal distributions
     // seed timing tables
+    let count = 0;
     db.transaction(tx => {
         // if only_if_empty is true, first check if the time_block table is empty
         let seed_tables = true;
         if (only_if_empty) {
             tx.executeSql(
-                'SELECT COUNT(*) FROM time_block;',
+                'SELECT COUNT(*) FROM time_blocks;',
                 [],
                 (_, {rows: {_array}}) => {
                     // if the time_block table is empty, seed it
@@ -83,11 +84,10 @@ export function seedTimingTables(db, only_if_empty = true) {
             return;
         }
         // generate data for 100 days, 5 of which are in the future
-        const no_of_days = 10;
+        const no_of_days = 150;
         let start_date = new Date();
-        start_date.setDate(start_date.getDate() - no_of_days - 5);
+        start_date.setDate(start_date.getDate() - (no_of_days - 5));
         for (let i = 0; i < no_of_days; i++) {
-            // generate 7 time blocks per weekday, 5 per saturday, 0 per sunday
             const day = start_date.getDay();
             // the end of the day is 5 pm on weekdays, 1 pm on saturdays, and 10 am on sundays
             let end_of_day = 17;
@@ -115,7 +115,6 @@ export function seedTimingTables(db, only_if_empty = true) {
                 // ? ACTUAL TIMES
                 // with a 70% chance, the time block is performed else it is missed
                 if (planned_end_date < new Date() && Math.random() < 0.7) {
-                    console.log("not missed");
                     missed = false;
                     // the actual start time is a offset positively from the planned start time by a standard deviation of 15 minutes
                     actual_start_date = new Date(start_date);
@@ -138,22 +137,26 @@ export function seedTimingTables(db, only_if_empty = true) {
                 }
 
                 // the task id is a random number between 1 and 300
-                const task_id = faker.datatype.number({min: 1, max: 300});
+                const task_id = faker.datatype.number({min: 1, max: 25});
                 // the percentage complete is the actual duration divided by the planned duration
                 const percentage_complete = actual_duration ? actual_duration / duration : 0;
                 // the created at and updated at are the same times are between 1 week before the start date and the start date
-                const created_at = faker.date.between(new Date(start_date.setDate(start_date.getDate() - 7)), start_date);
+                const created_at_l_bound = new Date(start_date);
+                created_at_l_bound.setDate(created_at_l_bound.getDate() - 7);
+                const created_at = faker.date.between(created_at_l_bound, start_date);
                 const updated_at = created_at;
 
 
                 tx.executeSql(
-                    'INSERT INTO time_block (planned_start_time, planned_end_time, planned_duration,' +
+                    'INSERT INTO time_blocks (planned_start_time, planned_end_time, planned_duration,' +
                     ' actual_start_time, actual_end_time, actual_duration,' +
                     ' percentage_complete, missed, task_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?);',
                     [start_date.toISOString(), planned_end_date.toISOString(), duration,
                         actual_start_date ? actual_start_date.toISOString() : null, actual_end_date ? actual_end_date.toISOString() : null, actual_duration,
                         percentage_complete, missed, task_id, created_at.toISOString(), updated_at.toISOString()]
                 );
+                count ++;
+
                 // the new start time is the actual end time or planned end time if the time block was missed
                 start_date = new Date(actual_end_date || planned_end_date);
             }
@@ -161,7 +164,7 @@ export function seedTimingTables(db, only_if_empty = true) {
             // move to the next day
             start_date.setDate(start_date.getDate() + 1);
         }
-    }, (error) => console.log(error), () => console.log("Timing tables seeded successfully"));
+    }, (error) => console.log(error), () => console.log("Timing tables seeded successfully ",count, " time blocks added"));
 }
 
 
@@ -169,51 +172,31 @@ export function seedTimingTables(db, only_if_empty = true) {
 // function to get the time blocks for a given task id with optional start and end dates and run a callback function on the result
 // end date is by default the current date
 // start date is by default 7 days before the end date
-export function getTaskAndTimeBlocks(db, task_id, callback, start_date = null, end_date = null) {
-    const task = {}
-    // if the end date is not given, set it to the current date
-    if (!end_date) {
-        end_date = new Date();
+export function getTaskTimeBlocks(db, task_id, callback, start_date = null, end_date = null) {
+    const time_blocks = [];
+    const args = [task_id];
+    if (start_date) {
+        args.push(start_date.toISOString());
     }
-    // if the start date is not given, set it to 7 days before the end date
-    if (!start_date) {
-        start_date = new Date(end_date);
-        start_date.setDate(start_date.getDate() - 7);
+    if (end_date) {
+        args.push(end_date.toISOString());
     }
     // get the data for the task first from the tasks table
     db.transaction((tx) => {
-        tx.executeSql(
-            'SELECT * FROM task WHERE id = ?;',
-            [task_id],
-            (tx, result) => {
-                // if the task exists, add the data to the task data object
-                if (result.rows.length > 0) {
-                    for (let key in result.rows.item(0)) {
-                        task[key] = result.rows.item(0)[key];
-                    }
-                }
-                // if the task does not exist, run the callback function on the empty task data object
-                else {
-                    callback(task);
-                }
-            }
-        );
-
-        // get the time blocks for the task id between the start and end dates if the task exists
-        if (Object.keys(task).length > 0) {
+        // get the time blocks for the task id between the start and end dates
+        // if the there are not start or end dates, do not use them in the query,
+        // sort the time blocks by planned start time from earliest to latest
             tx.executeSql(
-                'SELECT * FROM time_block WHERE task_id = ? AND planned_start_time >= ? AND planned_end_time <= ?;',
-                [task_id, start_date.toISOString(), end_date.toISOString()],
+                `SELECT * FROM time_blocks WHERE task_id = ? ${start_date ? 'AND planned_start_time >= ?' : ''}${end_date ? ' AND planned_end_time <= ?' : ''} ORDER BY planned_start_time DESC;`,
+                args,
                 (tx, result) => {
-                    // add the time blocks to the task data object
-                    task.time_blocks = [];
+                    // for each time block, add it to the time blocks array
                     for (let i = 0; i < result.rows.length; i++) {
-                        task.time_blocks.push(result.rows.item(i));
+                        time_blocks.push(result.rows.item(i));
                     }
                     // run the callback function on the task data object
-                    callback(task);
+                    callback({type: 'add_time_blocks', time_blocks: time_blocks});
                 });
-        }
     }, (error) => console.log(error), () => console.log("Task and time blocks retrieved successfully"));
 
 }

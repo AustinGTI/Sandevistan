@@ -12,7 +12,7 @@ function TaskPane({task}) {
     // ? ON CLICK
     const navigation = useNavigation()
     const goToTask = useCallback(() => {
-        navigation.push("TaskView", {task_id: task.id});
+        navigation.push("TaskView", {task: task});
         console.log("go to task: " + task.name);
     }, [task]);
 

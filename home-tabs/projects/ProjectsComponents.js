@@ -9,6 +9,7 @@ export const HEADER_HEIGHT = 50;
 //endregion
 
 
+//region COMPONENTS
 // a single button that links to a single project view
 const ProjectViewButton = ({view, is_active}) => {
     const navigation = useNavigation();
@@ -41,6 +42,7 @@ export const ProjectViewButtons = ({current_view}) => {
         </View>
     );
 }
+//endregion
 
 
 //region STYLES
@@ -103,5 +105,20 @@ export const project_styles = StyleSheet.create({
         paddingTop: HEADER_HEIGHT,
     }
 });
+
+//endregion
+
+//region FUNCTIONS
+// .............
+
+// a function to convert a js date object to an am/pm time string with hours and minutes eg. 12:34 pm
+export const dateToTimeString = (date) => {
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const am_pm = hours >= 12 ? 'pm' : 'am';
+    const hours_12 = hours % 12 || 12;
+    return `${hours_12}:${minutes < 10 ? '0' : ''}${minutes} ${am_pm}`;
+}
+
 
 //endregion

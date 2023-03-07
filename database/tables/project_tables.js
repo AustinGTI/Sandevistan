@@ -29,16 +29,16 @@ export function createProjectTables(db) {
 // function to seed the project tables with fake data
 export function seedProjectTables(db, only_if_empty = true) {
     // if the only_if_empty flag is set to true, then the tables will only be seeded if they are empty
+    const seeder_amounts = {
+        domains: 3,
+        projects: 7,
+        tasks: 25,
+    }
     const table_seeder_pairs = {
         domains: domainSeeder,
-        projects: projectSeeder,
-        tasks: taskSeeder,
-    }
-    const seeder_amounts = {
-        domains: 10,
-        projects: 50,
-        tasks: 300,
-    }
+        projects: (num) => projectSeeder(num,seeder_amounts.domains),
+        tasks: (num) => taskSeeder(num,seeder_amounts.projects),
+}
     db.transaction(tx => {
             for (const table_name in table_seeder_pairs) {
                 // checking if the table is empty
@@ -138,7 +138,7 @@ export function printProjectTables(db) {
 export function getDomainsAndProjects(db, callback) {
     const raw_domains = [];
     db.transaction((tx) => {
-            tx.executeSql("SELECT id,name,priority,color FROM domains", [], (_, {rows}) => {
+            tx.executeSql("SELECT * FROM domains", [], (_, {rows}) => {
                 // create an object for each domain, fill it with the domain's attributes and push it into the raw_domains array
                 rows._array.forEach((domain) => {
                         const domain_object = {
@@ -153,12 +153,13 @@ export function getDomainsAndProjects(db, callback) {
                 );
                 // for all the domains, get the projects and push them into the domain
                 raw_domains.forEach((domain) => {
-                        tx.executeSql(`SELECT id,name,priority,color FROM projects WHERE domain_id=${domain.id}`, [], (_, {rows}) => {
+                        tx.executeSql(`SELECT * FROM projects WHERE domain_id=${domain.id}`, [], (_, {rows}) => {
                             rows._array.forEach((project) => {
                                 const project_object = {
                                     id: project.id,
                                     name: project.name,
                                     priority: project.priority,
+                                    description: project.description,
                                     color: project.color,
                                 };
                                 domain.projects.push(project_object);
@@ -177,38 +178,25 @@ export function getDomainsAndProjects(db, callback) {
         });
 }
 
-// function to get a project and its tasks given its id
-export function getProjectAndTasks(db, project_id, callback) {
-    const raw_project = {};
+// function to get a project's tasks given its id
+export function getProjectTasks(db, project_id, callback) {
+    const tasks = [];
     db.transaction((tx) => {
-            tx.executeSql(`SELECT id,name,description,priority FROM projects WHERE id=?`, [project_id], (_, {rows}) => {
-                // create an object for the project, fill it with the project's attributes
-                const project = rows._array[0];
-                raw_project.id = project.id;
-                raw_project.name = project.name;
-                raw_project.description = project.description;
-                raw_project.priority = project.priority;
-                raw_project.tasks = [];
-                // get the tasks and push them into the project
-                tx.executeSql(`SELECT id,name,description FROM tasks WHERE project_id=?`, [project_id], (_, {rows}) => {
-                    rows._array.forEach((task) => {
-                        const task_object = {
-                            id: task.id,
-                            name: task.name,
-                            description: task.description,
-                        };
-                        raw_project.tasks.push(task_object);
-                    });
-                }, (error) => {
-                    console.log(error, 'error retrieving tasks for project', project.name);
-                });
+        // get the tasks and push them into the project
+        tx.executeSql(`SELECT id,name,description FROM tasks WHERE project_id=?`, [project_id], (_, {rows}) => {
+            rows._array.forEach((task) => {
+                const task_object = {
+                    id: task.id,
+                    name: task.name,
+                    description: task.description,
+                };
+                tasks.push(task_object);
             });
+            callback({type: 'add_tasks', tasks: tasks});
         }, (error) => {
-            console.log(error);
-        },
-        () => {
-            callback(raw_project);
+            console.log(error, 'error retrieving tasks for project id ', project_id);
         });
+    });
 }
 
 
@@ -224,7 +212,7 @@ function domainSeeder(num) {
             description: faker.lorem.paragraph(),
             color: faker.internet.color(),
             icon: faker.internet.avatar(),
-            priority: Math.round(Math.random() * 5),
+            priority: Math.floor(Math.random() * 5) + 1,
             created_at: faker.date.past().toDateString(),
             updated_at: faker.date.recent().toDateString(),
         });
@@ -232,16 +220,16 @@ function domainSeeder(num) {
     return domains;
 }
 
-function projectSeeder(num) {
+function projectSeeder(num, no_of_domains) {
     let projects = [];
     for (let i = 0; i < num; i++) {
         projects.push({
             name: faker.random.word(),
             description: faker.lorem.paragraph(),
             color: faker.internet.color(),
-            priority: Math.round(Math.random() * 5),
+            priority: Math.floor(Math.random() * 5) + 1,
             // ideally, domain_id has to be the id of an existing domain
-            domain_id: Math.round(Math.random() * 10),
+            domain_id: Math.floor(Math.random() * no_of_domains) + 1,
             deadline: faker.date.future().toDateString(),
             created_at: faker.date.past().toDateString(),
             updated_at: faker.date.recent().toDateString(),
@@ -250,7 +238,7 @@ function projectSeeder(num) {
     return projects;
 }
 
-function taskSeeder(num) {
+function taskSeeder(num, no_of_projects) {
     let tasks = [];
     let estimated_time = Math.round(Math.random() * 1000);
     let elapsed_time = Math.round(Math.random() * estimated_time);
@@ -266,7 +254,7 @@ function taskSeeder(num) {
             minimum_time: minimum_time,
             maximum_time: maximum_time,
             // ideally, project_id has to be the id of an existing project
-            project_id: Math.round(Math.random() * 50),
+            project_id: Math.floor(Math.random() * no_of_projects) + 1,
             created_at: faker.date.past().toDateString(),
             updated_at: faker.date.recent().toDateString(),
         });

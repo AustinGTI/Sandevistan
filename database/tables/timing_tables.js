@@ -5,7 +5,7 @@ export function createTimingTables(db) {
     // create timing tables
     db.transaction(tx => {
         tx.executeSql(
-            'CREATE TABLE IF NOT EXISTS time_blocks (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,' +
+            'CREATE TABLE IF NOT EXISTS sessions (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,' +
             ' planned_start_time TEXT NOT NULL,' +
             ' planned_end_time TEXT NOT NULL,' +
             ' actual_start_time TEXT,' +
@@ -24,11 +24,11 @@ export function createTimingTables(db) {
 
 
 // function to print a given number of time blocks from the time_block table
-export function printTimingTables(db, num_time_blocks) {
+export function printTimingTables(db, num_sessions) {
     db.transaction(tx => {
         tx.executeSql(
-            'SELECT * FROM time_blocks LIMIT ?;',
-            [num_time_blocks],
+            'SELECT * FROM sessions LIMIT ?;',
+            [num_sessions],
             (_, {rows: {_array}}) => {
                 console.log(_array);
             },
@@ -39,18 +39,19 @@ export function printTimingTables(db, num_time_blocks) {
 
 
 // function to drop either the given time block id or all time blocks
-export function dropTimingTables(db, time_block_id = null) {
+export function dropTimingTables(db, session_id = null) {
     db.transaction(tx => {
-        if (time_block_id) {
+        if (session_id) {
             tx.executeSql(
-                'DELETE FROM time_blocks WHERE id = ?;',
-                [time_block_id],
+                'DELETE FROM sessions WHERE id = ?;',
+                [session_id],
                 (_, {rows: {_array}}) => console.log(_array),
                 (error) => console.log(error)
             );
         } else {
+            // otherwise, delete the table entirely
             tx.executeSql(
-                'DELETE FROM time_blocks;',
+                'DROP TABLE IF EXISTS sessions;',
                 [],
                 (_, {rows: {_array}}) => console.log(_array),
                 (error) => console.log(error)
@@ -70,7 +71,7 @@ export function seedTimingTables(db, only_if_empty = true) {
         let seed_tables = true;
         if (only_if_empty) {
             tx.executeSql(
-                'SELECT COUNT(*) FROM time_blocks;',
+                'SELECT COUNT(*) FROM sessions;',
                 [],
                 (_, {rows: {_array}}) => {
                     // if the time_block table is empty, seed it
@@ -148,7 +149,7 @@ export function seedTimingTables(db, only_if_empty = true) {
 
 
                 tx.executeSql(
-                    'INSERT INTO time_blocks (planned_start_time, planned_end_time, planned_duration,' +
+                    'INSERT INTO sessions (planned_start_time, planned_end_time, planned_duration,' +
                     ' actual_start_time, actual_end_time, actual_duration,' +
                     ' percentage_complete, missed, task_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?);',
                     [start_date.toISOString(), planned_end_date.toISOString(), duration,
@@ -172,8 +173,8 @@ export function seedTimingTables(db, only_if_empty = true) {
 // function to get the time blocks for a given task id with optional start and end dates and run a callback function on the result
 // end date is by default the current date
 // start date is by default 7 days before the end date
-export function getTaskTimeBlocks(db, task_id, callback, start_date = null, end_date = null) {
-    const time_blocks = [];
+export function getTaskSessions(db, task_id, callback, start_date = null, end_date = null) {
+    const sessions = [];
     const args = [task_id];
     if (start_date) {
         args.push(start_date.toISOString());
@@ -187,15 +188,15 @@ export function getTaskTimeBlocks(db, task_id, callback, start_date = null, end_
         // if the there are not start or end dates, do not use them in the query,
         // sort the time blocks by planned start time from earliest to latest
             tx.executeSql(
-                `SELECT * FROM time_blocks WHERE task_id = ? ${start_date ? 'AND planned_start_time >= ?' : ''}${end_date ? ' AND planned_end_time <= ?' : ''} ORDER BY planned_start_time DESC;`,
+                `SELECT * FROM sessions WHERE task_id = ? ${start_date ? 'AND planned_start_time >= ?' : ''}${end_date ? ' AND planned_end_time <= ?' : ''} ORDER BY planned_start_time DESC;`,
                 args,
                 (tx, result) => {
                     // for each time block, add it to the time blocks array
                     for (let i = 0; i < result.rows.length; i++) {
-                        time_blocks.push(result.rows.item(i));
+                        sessions.push(result.rows.item(i));
                     }
                     // run the callback function on the task data object
-                    callback({type: 'add_time_blocks', time_blocks: time_blocks});
+                    callback({type: 'add_sessions', sessions: sessions});
                 });
     }, (error) => console.log(error), () => console.log("Task and time blocks retrieved successfully"));
 

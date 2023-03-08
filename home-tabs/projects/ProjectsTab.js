@@ -3,6 +3,7 @@ import {createStackNavigator} from "@react-navigation/stack";
 import ProjectsIndex from "./layers/ProjectsIndex";
 import ProjectView from "./layers/ProjectView";
 import TaskView from "./layers/TaskView";
+import SessionView from "./layers/SessionView";
 
 // the holder for the projects stack
 const Stack = createStackNavigator();
@@ -16,6 +17,8 @@ export default function ProjectsTab() {
             <Stack.Screen name={"ProjectView"} component={ProjectView}/>
             {/* The view of a single task */}
             <Stack.Screen name={"TaskView"} component={TaskView}/>
+            {/* The view of a single session */}
+            <Stack.Screen name={"SessionView"} component={SessionView}/>
         </Stack.Navigator>
     )
 }

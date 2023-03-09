@@ -1,8 +1,9 @@
-import {Text, View, StyleSheet, FlatList} from "react-native";
-import {getDomainsAndProjects} from "../../../database/tables/project_tables";
+import {Text, View, StyleSheet, FlatList, Button, TextInput} from "react-native";
+import {addDomain, getDomainsAndProjects} from "../../../database/tables/project_tables";
 import {useCallback, useContext, useEffect, useMemo, useReducer, useState} from "react";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import {DatabaseContext} from "../../../contexts/global_contexts";
+import {core_styles, ModalContainer} from "../ProjectsComponents";
 
 
 // component to display a single project pane
@@ -57,24 +58,81 @@ function DomainPane({domain , navigation}) {
     )
 }
 
+// component to add a new domain that will be displayed in a modal
+function AddDomainModal({state, setState}) {
+    // ? DOMAIN VALUES
+    const db = useContext(DatabaseContext);
+    const domain = {
+        name: "",
+        priority: 1,
+        description: "",
+        color: "blue",
+        icon: "circle",
+    };
+
+    // ? INPUT HANDLING
+    const handleNameChange = useCallback((text) => {
+        // check that the string is not 0 and is less than 20 characters
+        if (text.length > 0 && text.length < 20) {
+            domain.name = text;
+        }
+    }, []);
+    const handlePriorityChange = useCallback((text) => {
+        // convert the text to a number
+        const num = parseInt(text);
+        // check that the number is between 1 and 5
+        if (num >= 1 && num <= 5) {
+            domain.priority = num;
+        }
+    }, []);
+    const addDomainOnClick = useCallback(() => {
+        // add the domain to the database
+        addDomain(db, domain, () => setState('executed'));
+
+    }, []);
+    // ? ................................
+
+    return (
+        <ModalContainer state={state} setState={setState}>
+            <Text>Add a New Domain</Text>
+            {/* The user enters the name of the new domain and its priority between 1 and 5 */}
+            <TextInput style={core_styles.text_input} placeholder={'Domain Name'} maxLength={20} onChangeText={handleNameChange}/>
+            <TextInput style={core_styles.text_input} placeholder={'Priority'} keyboardType={'numeric'} onChangeText={handlePriorityChange}/>
+            <Button title={'Add Domain'} onPress={addDomainOnClick}/>
+        </ModalContainer>
+    )
+}
+
 
 // the tab that will be used to display and edit the projects being worked on
 export default function ProjectsIndex({navigation}) {
+    // ? STATES AND CONTEXTS
     const [domains, setDomains] = useState([]);
+    const [modalState, setModalState] = useState('off');
     const db = useContext(DatabaseContext);
+    // ? ............................
+
+    // ? EFFECTS
     useEffect(() => {
-        getDomainsAndProjects(db, setDomains);
-    }, []);
+        // only refresh when modal state is 'executed'
+        if (modalState === 'executed') {
+            getDomainsAndProjects(db, setDomains);
+            setModalState('off');
+        }
+    }, [modalState]);
+    // ? ............................
 
 
+    // ? RENDER
     return (
         <View style={domain_styles.container}>
-            <Text>Projects Base</Text>
+            <Button title={'Add Domain'} onPress={() => setModalState('full')}/>
             <FlatList
                 data={domains}
                 renderItem={({item}) => <DomainPane domain={item} navigation={navigation}/>}
                 keyExtractor={(item) => item.id.toString()}
             />
+            <AddDomainModal state={modalState} setState={setModalState}/>
         </View>
     )
 }

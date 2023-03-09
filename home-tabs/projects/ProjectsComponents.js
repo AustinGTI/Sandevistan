@@ -1,4 +1,4 @@
-import {Button, StyleSheet,Text, View} from "react-native";
+import {Button, StyleSheet, Text, View} from "react-native";
 import {useNavigation} from "@react-navigation/native";
 import React, {useCallback} from "react";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
@@ -16,12 +16,12 @@ const ProjectViewButton = ({view, is_active}) => {
     const navigate = useCallback(() => navigation.navigate(view), [view]);
     const tap = Gesture.Tap().onBegin(navigate);
     // ? STYLING
-    const button_view_styling = {...core_styles.button,...(is_active ? core_styles.active_button : core_styles.inactive_button)};
-    const button_text_styling = {...core_styles.body_text,color:button_view_styling.color};
+    const button_view_styling = {...core_styles.button, ...(is_active ? core_styles.active_button : core_styles.inactive_button)};
+    const button_text_styling = {...core_styles.body_text, color: button_view_styling.color};
     return (
         <GestureDetector gesture={tap} key={view}>
             <View style={button_view_styling}>
-                <Text style={button_text_styling}>{view.slice(7,-4)}</Text>
+                <Text style={button_text_styling}>{view.slice(7, -4)}</Text>
             </View>
         </GestureDetector>
     );
@@ -32,15 +32,60 @@ const ProjectViewButton = ({view, is_active}) => {
 export const ProjectViewButtons = ({current_view}) => {
     const views = ["ProjectDetailsView", "ProjectTasksView", "ProjectTreeView"];
     // ? STYLING
-    const buttons_container_styling = {...core_styles.container,flex:0,flexDirection:'row'};
+    const buttons_container_styling = {...core_styles.container, flex: 0, flexDirection: 'row'};
     return (
         <View style={buttons_container_styling}>
             {views.map(
                 (view, vi) =>
-                <ProjectViewButton view={view} is_active={view === current_view} key={vi}/>
+                    <ProjectViewButton view={view} is_active={view === current_view} key={vi}/>
             )}
         </View>
     );
+}
+
+
+// a generic modal container that can be used to display any component, comes from bottom of screen
+// the modal has 3 main states: off, partial and full (not visible, small bottom pane visible, full screen visible(up to 80% of screen height))
+// there is a 4th state 'executed' which is used to indicate that a task has been completed and the modal should close and main page should refresh
+export const ModalContainer = ({children, state, setState}) => {
+    // ? STYLING
+    const modal_container_styling = {
+        ...core_styles.container,
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: '#000',
+        borderTopLeftRadius: 10,
+        borderTopRightRadius: 10,
+        borderWidth: 1,
+        borderColor: '#fff',
+    };
+    const modal_container_full_styling = {...modal_container_styling, height: '80%'};
+    const modal_container_partial_styling = {...modal_container_styling, height: HEADER_HEIGHT};
+    const modal_container_off_styling = {...modal_container_styling, height: 0};
+    const modal_container_styling_map = {
+        'off': modal_container_off_styling,
+        'partial': modal_container_partial_styling,
+        'full': modal_container_full_styling,
+    };
+    if (state === 'off' || state === 'executed') return null;
+
+    return <View style={modal_container_styling_map[state]}>
+        {/* close and expand/collapse buttons */}
+        <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingHorizontal: 5
+        }}>
+            <Button title={'close'} onPress={() => setState('off')}/>
+            <Button title={state === 'full' ? 'collapse' : 'expand'}
+                    onPress={() => setState(state === 'full' ? 'partial' : 'full')}/>
+        </View>
+        {/* the content of the modal if state is full */}
+        {state === 'full' && children}
+    </View>
 }
 //endregion
 
@@ -96,6 +141,14 @@ export const core_styles = StyleSheet.create({
     inactive_button: {
         backgroundColor: "#000",
         color: "#fff",
+    },
+
+    // INPUTS
+    text_input: {
+        backgroundColor: '#fff',
+        color: '#000',
+        padding: 5,
+        margin: 5,
     }
 });
 

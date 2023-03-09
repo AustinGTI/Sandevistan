@@ -1,9 +1,9 @@
 import {core_styles, dateToTimeString} from "../ProjectsComponents";
-import {View, Text, Button, FlatList} from "react-native";
+import {View, Text, Button, FlatList, Modal, TouchableOpacity} from "react-native";
 import React, {useCallback, useContext, useEffect, useMemo, useReducer, useState} from "react";
 import {getTaskSessions} from "../../../database/tables/timing_tables";
 import {DatabaseContext} from "../../../contexts/global_contexts";
-import {Gesture, GestureDetector} from "react-native-gesture-handler";
+import {Gesture, GestureDetector, GestureHandlerRootView} from "react-native-gesture-handler";
 import {useNavigation} from "@react-navigation/native";
 
 function taskUpdateHandler(task, action) {
@@ -92,10 +92,8 @@ function SessionPane({session}) {
     }
 
     // ? TOUCH HANDLERS
-    const navigation = useNavigation();
     const goToSession = useCallback(() => {
-        navigation.push("SessionView", {session_id: session.id});
-        console.log("go to session");
+        console.log("display modal from where details are visible or editable if the session is upcoming");
     }, [session]);
 
     const onTap = useMemo(() => Gesture.Tap().onEnd(goToSession), [goToSession]);
@@ -184,6 +182,8 @@ function SessionsDateView({date, sessions}) {
 }
 
 export default function TaskView({navigation, route}) {
+    // testing modal functionality
+    const [modalVisible, setModalVisible] = useState(false);
     const [task, updateTask] = useReducer(taskUpdateHandler, route.params.task);
     const db = useContext(DatabaseContext);
     useEffect(() => {
@@ -199,6 +199,9 @@ export default function TaskView({navigation, route}) {
             acc[date].push(session);
             return acc;
         }, {}) : {};
+
+    // ? TOUCH HANDLERS
+
     // ? STYLING
     const task_view_styling = core_styles.container;
     const task_view_header_styling = core_styles.header_text;
@@ -210,5 +213,6 @@ export default function TaskView({navigation, route}) {
             <FlatList data={Object.entries(sessions_by_date)}
                       renderItem={(item) => <SessionsDateView date={item.item[0]} sessions={item.item[1]}/>}
             />
-        </View>);
+        </View>
+    );
 }

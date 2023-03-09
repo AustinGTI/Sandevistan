@@ -199,6 +199,29 @@ export function getProjectTasks(db, project_id, callback) {
     });
 }
 
+// ..........................
+
+// ? DATA ENTRY FUNCTIONS
+// ..........................
+
+// function to add a domain
+export function addDomain(db, domain, callback) {
+    const created_at = new Date().toISOString();
+    const updated_at = new Date().toISOString();
+    db.transaction((tx) => {
+        tx.executeSql(
+            'INSERT INTO domains (name, description, color, icon, priority, created_at, updated_at) VALUES (?,?,?,?,?,?,?);',
+            [domain.name, domain.description, domain.color, domain.icon, domain.priority, created_at, updated_at],
+            (tx, results) => {
+                callback();
+            },
+            (tx, error) => {
+                console.log(error);
+            }
+        );
+    });
+}
+
 
 // ? HELPER FUNCTIONS
 // .................

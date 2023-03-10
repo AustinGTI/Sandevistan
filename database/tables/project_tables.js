@@ -36,9 +36,9 @@ export function seedProjectTables(db, only_if_empty = true) {
     }
     const table_seeder_pairs = {
         domains: domainSeeder,
-        projects: (num) => projectSeeder(num,seeder_amounts.domains),
-        tasks: (num) => taskSeeder(num,seeder_amounts.projects),
-}
+        projects: (num) => projectSeeder(num, seeder_amounts.domains),
+        tasks: (num) => taskSeeder(num, seeder_amounts.projects),
+    }
     db.transaction(tx => {
             for (const table_name in table_seeder_pairs) {
                 // checking if the table is empty
@@ -174,6 +174,8 @@ export function getDomainsAndProjects(db, callback) {
             console.log(error);
         },
         () => {
+            console.log('Domains and projects retrieved successfully');
+            console.log(raw_domains);
             callback(raw_domains);
         });
 }
@@ -213,6 +215,7 @@ export function addDomain(db, domain, callback) {
             'INSERT INTO domains (name, description, color, icon, priority, created_at, updated_at) VALUES (?,?,?,?,?,?,?);',
             [domain.name, domain.description, domain.color, domain.icon, domain.priority, created_at, updated_at],
             (tx, results) => {
+                // wait for the transaction to finish and then call the callback function
                 callback();
             },
             (tx, error) => {

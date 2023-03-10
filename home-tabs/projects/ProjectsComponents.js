@@ -1,6 +1,6 @@
-import {Button, StyleSheet, Text, View} from "react-native";
+import {Button, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View} from "react-native";
 import {useNavigation} from "@react-navigation/native";
-import React, {useCallback} from "react";
+import React, {useCallback, useEffect, useMemo, useReducer} from "react";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
 
 
@@ -48,6 +48,14 @@ export const ProjectViewButtons = ({current_view}) => {
 // the modal has 3 main states: off, partial and full (not visible, small bottom pane visible, full screen visible(up to 80% of screen height))
 // there is a 4th state 'executed' which is used to indicate that a task has been completed and the modal should close and main page should refresh
 export const ModalContainer = ({children, state, setState}) => {
+    const PARTIAL_HEIGHT = 50;
+    // ? TOUCH HANDLERS
+    const handleOutsideTap = useCallback(() => {
+        if (state === 'full') setState('partial');
+    }, [state, setState]);
+    const onTap = useMemo(() => Gesture.Tap().onBegin(handleOutsideTap), [handleOutsideTap]);
+    // ...............
+
     // ? STYLING
     const modal_container_styling = {
         ...core_styles.container,
@@ -61,34 +69,139 @@ export const ModalContainer = ({children, state, setState}) => {
         borderWidth: 1,
         borderColor: '#fff',
     };
-    const modal_container_full_styling = {...modal_container_styling, height: '80%'};
-    const modal_container_partial_styling = {...modal_container_styling, height: HEADER_HEIGHT};
+    const modal_styling = {
+        ...core_styles.container,
+        backgroundColor: 'transparent',
+        height: (state === 'full' ? '100%' : PARTIAL_HEIGHT),
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0
+    };
+    const modal_top_view_styling = {flex: (state === 'full' ? 1 : 0)};
+    const modal_container_partial_styling = {...modal_container_styling, height: PARTIAL_HEIGHT};
     const modal_container_off_styling = {...modal_container_styling, height: 0};
     const modal_container_styling_map = {
         'off': modal_container_off_styling,
         'partial': modal_container_partial_styling,
-        'full': modal_container_full_styling,
+        'full': modal_container_styling,
     };
     if (state === 'off' || state === 'executed') return null;
 
-    return <View style={modal_container_styling_map[state]}>
-        {/* close and expand/collapse buttons */}
-        <View style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            paddingHorizontal: 5
-        }}>
-            <Button title={'close'} onPress={() => setState('off')}/>
-            <Button title={state === 'full' ? 'collapse' : 'expand'}
-                    onPress={() => setState(state === 'full' ? 'partial' : 'full')}/>
+    return <View
+        style={modal_styling}>
+        {/* if the state is 'full', the top view is an invisible touchable area that sets state to 'partial' on touch */}
+        <GestureDetector gesture={onTap}>
+            <View style={modal_top_view_styling}/>
+        </GestureDetector>
+
+        <View style={modal_container_styling_map[state]}>
+            {/* close and expand/collapse buttons */}
+            <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingHorizontal: 5
+            }}>
+                <Button title={'close'} onPress={() => setState('off')}/>
+                <Button title={state === 'full' ? 'collapse' : 'expand'}
+                        onPress={() => setState(state === 'full' ? 'partial' : 'full')}/>
+            </View>
+            {/* the content of the modal if state is full */}
+            {state === 'full' && children}
         </View>
-        {/* the content of the modal if state is full */}
-        {state === 'full' && children}
     </View>
 }
+
+
+// region INPUT COMPONENTS
+// .......................
+
+// a generic text input component
+export const CoreTextInput = ({
+                                  data,
+                                  updateForm,
+                                  data_key,
+                                  multiline = false,
+                                  numeric = false,
+                                  required = true,
+                                  min_len = 3,
+                                  max_len = 16,
+                                  style = {}
+                              }) => {
+    // ? VALIDATION
+    const updateData = useCallback((new_val) => {
+        const new_data = {value: new_val, valid: true, error: ''};
+        // perform validation
+        // check if required, if so check if empty
+        if (required && new_data.value === '') {
+            new_data.valid = false;
+            new_data.error = 'This field is required';
+        }
+        // check if numeric, if so check if not a number
+        else if (numeric && isNaN(new_data.value)) {
+            new_data.valid = false;
+            new_data.error = 'This field must be a number';
+        }
+        // check if min length is met
+        else if (new_data.value.length < min_len) {
+            new_data.valid = false;
+            new_data.error = `This field must be at least ${min_len} characters long`;
+        }
+        // check if max length is met
+        else if (new_data.value.length > max_len) {
+            new_data.valid = false;
+            new_data.error = `This field must be at most ${max_len} characters long`;
+        }
+        // if all checks pass, set valid to true and error to empty string
+        else {
+            new_data.valid = true;
+            new_data.error = '';
+        }
+        // update the form with the new data and the action type as the key
+        updateForm({[data_key]: new_data});
+    }, [])
+
+    // ? EFFECTS
+    // validate the input data on mount
+    useEffect(() => {
+        updateData(data.value);
+    }, []);
+
+    // ? STYLING
+    const text_input_styling = {...core_styles.container, ...style};
+    return (
+        <View style={text_input_styling}>
+            <Text style={core_styles.label}>{data_key}</Text>
+            <TextInput
+                style={{...core_styles.text_input, ...style}}
+                value={data.value}
+                onChangeText={text => updateData(text)}
+                placeholder={data_key}
+                multiline={multiline}
+                keyboardType={numeric ? 'numeric' : 'default'}
+            />
+            {!data.valid && <Text style={core_styles.input_error}>{data.error}</Text>}
+        </View>)
+}
+
 //endregion
 
+//endregion
+
+//region CLASSES
+// .............
+
+// a class that represents a single data point in a form {value: string, valid: boolean, error: string}
+export class FormDataPoint {
+    constructor(value, valid = true, error = '') {
+        this.value = value;
+        this.valid = valid;
+        this.error = error;
+    }
+}
+
+//endregion
 
 //region STYLES
 // .............
@@ -143,12 +256,22 @@ export const core_styles = StyleSheet.create({
         color: "#fff",
     },
 
-    // INPUTS
+    // INPUT STYLING
+    label: {
+        color: "#fff",
+        fontSize: 16,
+        paddingHorizontal: 5,
+        textTransform: "uppercase",
+    },
     text_input: {
         backgroundColor: '#fff',
         color: '#000',
         padding: 5,
         margin: 5,
+    },
+    input_error: {
+        color: 'red',
+        fontSize: 12,
     }
 });
 

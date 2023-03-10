@@ -19,8 +19,6 @@ createTimingTables(db);
 seedProjectTables(db);
 seedTimingTables(db);
 
-// print the first 10 time blocks in the time_block table
-printTimingTables(db, 10);
 
 
 export default db;

@@ -1,5 +1,5 @@
-import {View, Text, StyleSheet} from 'react-native';
-import {core_styles, HEADER_HEIGHT, project_styles} from "../ProjectsComponents";
+import {View, Text, StyleSheet, Modal} from 'react-native';
+import {core_styles, HEADER_HEIGHT, ModalForm, project_styles} from "../ProjectsComponents";
 import {useHeaderHeight} from "@react-navigation/elements";
 import {ProjectContext} from "../../../contexts/project_contexts";
 import {useCallback, useContext, useEffect, useMemo, useState} from "react";
@@ -49,9 +49,7 @@ export default function ProjectTasksView() {
                         return (
                             <TaskPane key={idx} task={task}/>
                         )
-                    })
-                    :
-                    <Text style={core_styles.body_text}>No tasks yet...</Text>
+                    }) : <Text style={core_styles.body_text}>No tasks yet...</Text>
             }
         </View>
     );

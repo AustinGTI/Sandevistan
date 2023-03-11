@@ -225,6 +225,25 @@ export function addDomain(db, domain, callback) {
     });
 }
 
+// function to add a project
+export function addProject(db, project, callback) {
+    const created_at = new Date().toISOString();
+    const updated_at = new Date().toISOString();
+    db.transaction((tx) => {
+        tx.executeSql(
+            'INSERT INTO projects (name, description, color, priority, domain_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?);',
+            [project.name, project.description, project.color, project.priority, project.domain_id, created_at, updated_at],
+            (tx, results) => {
+                // wait for the transaction to finish and then call the callback function
+                callback();
+            },
+            (tx, error) => {
+                console.log(error);
+            }
+        );
+    });
+}
+
 
 // ? HELPER FUNCTIONS
 // .................

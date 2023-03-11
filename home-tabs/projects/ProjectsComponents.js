@@ -1,7 +1,9 @@
 import {Button, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View} from "react-native";
 import {useNavigation} from "@react-navigation/native";
-import React, {useCallback, useEffect, useMemo, useReducer} from "react";
+import React, {useCallback, useContext, useEffect, useMemo, useReducer} from "react";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
+import {DatabaseContext} from "../../contexts/global_contexts";
+import {addDomain} from "../../database/tables/project_tables";
 
 
 //region CONSTANTS
@@ -112,6 +114,103 @@ export const ModalContainer = ({children, state, setState}) => {
         </View>
     </View>
 }
+
+// a wrapper for a modal that allows a user to edit and create db entries
+export const ModalForm = ({default_obj, state, setState, children, onSubmit, button_title}) => {
+    // ? VALIDATION / DATA MANAGEMENT
+    const setObject = useCallback((prev_object, action) => {
+        const new_object = {...prev_object};
+        // for each key-val pair in the action, update the object
+        for (let key in action) {
+            new_object[key] = action[key];
+        }
+        return new_object;
+    }, []);
+    // .................................
+
+    // ? CONSTANTS
+    const db = useContext(DatabaseContext);
+    const [object, updateObject] = useReducer(setObject, default_obj);
+    // .................................
+
+    // ? EFFECTS
+    useEffect(() => {
+        // if state is 'executed' or 'off' then reset the form
+        if (state === 'executed' || state === 'off') {
+            updateObject(default_obj);
+        }
+    }, [state]);
+    // if the key,value pairs of the default object change, update the object
+    useEffect(() => {
+        updateObject(default_obj);
+    }, [JSON.stringify(default_obj)]);
+    // .................................
+
+    // ? INPUT HANDLING
+    const submitObjectOnClick = useCallback(() => {
+        const raw_object = {};
+        // first check that all the fields are valid
+        for (let key in object) {
+            console.log(key + " : " + object[key]['valid']);
+            if (!object[key]['valid']) {
+                alert("Invalid " + key + " field, ( " + object[key]['error'] + " )");
+                return;
+            }
+            raw_object[key] = object[key]['value'];
+        }
+        console.log('submitting object: ' + JSON.stringify(raw_object) + ' to db');
+        // add the object to the database
+        onSubmit(db, raw_object, () => setState('executed'));
+    }, [object]);
+    // ? ................................
+
+    // ? RENDER
+    // add data, data_key and updateForm props to each child based on data_key
+    const childrenWithProps = React.Children.map(children, child => {
+        if (React.isValidElement(child)) {
+            return React.cloneElement(child, {
+                data: object[child.props.data_key],
+                data_key: child.props.data_key,
+                updateForm: updateObject
+            });
+        }
+        return child;
+    });
+
+    return (
+        <ModalContainer state={state} setState={setState}>
+            {childrenWithProps}
+            <Button title={button_title} onPress={submitObjectOnClick}/>
+        </ModalContainer>
+    )
+    // ................................
+}
+
+// a function for setting the modal state of a component based on arguments
+// the setModalState function, converts the active modal to the one given and sets its state to the state given
+export const setModalState = (prev_state, params) => {
+        console.log("setModalState: " + JSON.stringify(params));
+        const new_state = {...prev_state};
+        // if params is just a string, set state to string
+        if (typeof (params) === 'string') {
+            new_state['state'] = params;
+            return new_state;
+        }
+        // otherwise set the active modal and its state
+        new_state['active_modal'] = params['modal'];
+        new_state['state'] = params['state'];
+
+        // if data is included in the params, add it to the state
+        if (params['data']) {
+            new_state['data'] = params['data'];
+        }
+        // otherwise set to null (this only happens if params is not a string, that way data is only refreshed on modal change)
+        else {
+            new_state['data'] = null;
+        }
+        console.log("new state: " + JSON.stringify(new_state));
+        return new_state;
+    };
 
 
 // region INPUT COMPONENTS

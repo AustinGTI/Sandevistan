@@ -1,11 +1,50 @@
 import {Text, View, StyleSheet, FlatList, Button, TextInput, TouchableWithoutFeedback} from "react-native";
-import {addDomain, getDomainsAndProjects} from "../../../database/tables/project_tables";
-import {useCallback, useContext, useEffect, useMemo, useReducer, useState} from "react";
+import {addDomain, addProject, getDomainsAndProjects} from "../../../database/tables/project_tables";
+import React, {useCallback, useContext, useEffect, useMemo, useReducer, useState} from "react";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import {DatabaseContext} from "../../../contexts/global_contexts";
-import {core_styles, CoreTextInput, FormDataPoint, ModalContainer} from "../ProjectsComponents";
+import {
+    core_styles,
+    CoreTextInput,
+    FormDataPoint,
+    ModalContainer,
+    ModalForm,
+    setModalState
+} from "../ProjectsComponents";
 import {useNavigation} from "@react-navigation/native";
 
+
+// region DATA CLASSES
+// the default set of domain data values
+class DefaultDomain {
+    constructor(params = {}) {
+        const {name, priority, description, color, icon} = params;
+        this.name = new FormDataPoint(name || "");
+        this.priority = new FormDataPoint(priority || 1);
+        this.description = new FormDataPoint(description || "");
+        this.color = new FormDataPoint(color || "blue");
+        this.icon = new FormDataPoint(icon || "circle");
+    }
+}
+
+// the default set of project data values
+class DefaultProject {
+    constructor(params = {}) {
+        const {name, description, priority,color, icon, domain_id} = params;
+        this.name = new FormDataPoint(name || "");
+        this.description = new FormDataPoint(description || "");
+        this.priority = new FormDataPoint(priority || 1);
+        this.color = new FormDataPoint(color || "blue");
+        this.icon = new FormDataPoint(icon || "circle");
+        this.domain_id = new FormDataPoint(domain_id || 0);
+    }
+}
+
+// endregion
+
+
+
+// region COMPONENTS
 
 // component to display a single project pane
 function ProjectPane({project, touchable}) {
@@ -34,7 +73,7 @@ function ProjectPane({project, touchable}) {
 }
 
 // component to display the domain section
-function DomainPane({domain, touchable}) {
+function DomainPane({domain, touchable, addProject}) {
     const [is_expanded, setExpanded] = useState(false);
     const expandContract = useCallback(() => {
         if (touchable) setExpanded(!is_expanded);
@@ -47,7 +86,8 @@ function DomainPane({domain, touchable}) {
                     {/* todo: add real domain icon, for now circle */}
                     <View style={{height: 20, width: 20, borderRadius: 20 / 2, backgroundColor: "blue"}}/>
                     <Text style={[domain_styles.text, {flexGrow: 1}]}>{domain.name}</Text>
-
+                    {/* add project button */}
+                    <Button title={'+'} onPress={addProject}/>
                     {/* todo: convert priority from number to color for now just number */}
                     <Text style={domain_styles.text}>{domain.priority}</Text>
                 </View>
@@ -63,104 +103,70 @@ function DomainPane({domain, touchable}) {
     )
 }
 
-// the default set of domain data values
-class DefaultDomain {
-    constructor() {
-        this.name = new FormDataPoint("");
-        this.priority = new FormDataPoint(1);
-        this.description = new FormDataPoint("");
-        this.color = new FormDataPoint("blue");
-        this.icon = new FormDataPoint("circle");
-    }
-}
-
-// component to add a new domain that will be displayed in a modal
-function AddDomainModal({state, setState}) {
-    // ? VALIDATION / DATA MANAGEMENT
-    const setDomain = useCallback((prev_domain, action) => {
-        const new_domain = {...prev_domain};
-        // for each key-val pair in the action, update the domain
-        for (let key in action) {
-            new_domain[key] = action[key];
-        }
-        return new_domain;
-    }, []);
-
-
-    // ? CONSTANTS
-    const db = useContext(DatabaseContext);
-    const [domain, updateDomain] = useReducer(setDomain, new DefaultDomain());
-
-    // ? EFFECTS
-    useEffect(() => {
-        // if state is 'executed' or 'off' then reset the form
-        if (state === 'executed' || state === 'off') {
-            updateDomain(new DefaultDomain());
-        }
-    }, [state]);
-
-    // ? INPUT HANDLING
-    const addDomainOnClick = useCallback(() => {
-        const raw_domain = {};
-        // first check that all the fields are valid
-        for (let key in domain) {
-            console.log(key + " : " + domain[key]['valid']);
-            if (!domain[key]['valid']) {
-                alert("Invalid " + key + " field, ( " + domain[key]['error'] + " )");
-                return;
-            }
-            raw_domain[key] = domain[key]['value'];
-        }
-        // add the domain to the database
-        addDomain(db, raw_domain, () => setState('executed'));
-
-    }, [domain]);
-    // ? ................................
-
-    return (
-        <ModalContainer state={state} setState={setState}>
-            <Text>Add a New Domain</Text>
-            {/* The user enters the name of the new domain and its priority between 1 and 5 */}
-            <CoreTextInput data={domain.name} data_key={'name'} updateForm={updateDomain}/>
-            <Button title={'Add Domain'} onPress={addDomainOnClick}/>
-        </ModalContainer>
-    )
-}
-
-
 // the tab that will be used to display and edit the projects being worked on
+// MAIN COMPONENT
 export default function ProjectsIndex() {
     // ? STATES,CONSTANTS AND CONTEXTS
     const [domains, setDomains] = useState(null);
-    const [modalState, setModalState] = useState('off');
+    // the modal state contains the active modal and the state of the active modal
+    const [modalState, updateModalState] = useReducer(setModalState, {
+        'active_modal': null,
+        'state': 'off',
+        'data': null
+    });
     const db = useContext(DatabaseContext);
     // ? ............................
 
     // ? EFFECTS
     useEffect(() => {
         // only refresh when modal state is 'executed' or component is mounted
-        if (modalState === 'executed' || domains === null) {
+        if (modalState.state === 'executed' || domains === null) {
             getDomainsAndProjects(db, setDomains);
-            setModalState('off');
+            // if the modal state is 'executed' then turn it off
+            if (modalState.state === 'executed') {
+                updateModalState({modal: null, state: 'off'});
+            }
         }
     }, [modalState]);
-    console.log(modalState);
     // ? ............................
-
 
     // ? RENDER
     return (
         <View style={domain_styles.container}>
-            <Button title={'Add Domain'} onPress={() => setModalState('full')}/>
+            <Button title={'Add Domain'} onPress={() => updateModalState({modal: 'add_domain', state: 'full'})}/>
+            {/*<Button title={'Add Project'} onPress={() => updateModalState({modal: 'add_project', state: 'full'})}/>*/}
             <FlatList
                 data={domains}
-                renderItem={({item}) => <DomainPane domain={item} touchable={true}/>}
+                renderItem={({item}) => <DomainPane domain={item} touchable={true} addProject={() => updateModalState({
+                    modal: 'add_project',
+                    state: 'full',
+                    data: {domain_id: item.id}
+                })}/>}
                 keyExtractor={(item) => item.id.toString()}
             />
-            <AddDomainModal state={modalState} setState={setModalState}/>
+            {/* The modal that will be used to add a new domain , modal key is 'add_domain' */}
+            {/*function ModalForm({default_obj, state, setState, children, onSubmit, button_title}) {*/}
+            <ModalForm default_obj={new DefaultDomain()}
+                       state={modalState.active_modal === 'add_domain' ? modalState.state : 'off'}
+                       setState={updateModalState}
+                       onSubmit={addDomain}
+                       button_title={'Add Domain'}>
+                <CoreTextInput data_key={'name'}/>
+            </ModalForm>
+
+            <ModalForm
+                default_obj={new DefaultProject({domain_id: modalState.data ? modalState.data.domain_id : undefined})}
+                state={modalState.active_modal === 'add_project' ? modalState.state : 'off'}
+                setState={updateModalState}
+                onSubmit={addProject}
+                button_title={'Add Project'}>
+                <CoreTextInput data_key={'name'}/>
+            </ModalForm>
         </View>
     )
 }
+
+// endregion
 
 const domain_styles = StyleSheet.create({
     container: {
